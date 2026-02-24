@@ -827,6 +827,8 @@ export default function App() {
               This app is brought to you by{" "}
               <a href="https://koerding.com" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "underline" }}>Konrad Kording</a>
               {" "}(<a href="https://c4r.io" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "underline" }}>Community for Rigor</a>)
+              {" "}to convince his amazing economist wife{" "}
+              <a href="https://www.marinescu.net" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "underline" }}>Ioana Marinescu</a>
             </div>
           </div>
         </main>
