@@ -809,6 +809,22 @@ export default function App() {
             }}>
               You want to correct for confounders. You must not correct for colliders. But do you know which is which? Some variables are both! Observational causality may be harder than you think. That's ok. Have a coffee.
             </div>
+
+            <div style={{
+              marginTop: 12,
+              padding: "10px 14px",
+              borderRadius: 8,
+              fontSize: compact ? 12 : 13,
+              lineHeight: 1.5,
+              background: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              color: "#64748b",
+              textAlign: "center",
+            }}>
+              This app is brought to you by{" "}
+              <a href="https://koerding.com" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "underline" }}>Konrad Kording</a>
+              {" "}(<a href="https://c4r.io" target="_blank" rel="noopener noreferrer" style={{ color: "#3b82f6", textDecoration: "underline" }}>Community for Rigor</a>)
+            </div>
           </div>
         </main>
       </div>
