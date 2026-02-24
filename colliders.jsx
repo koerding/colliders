@@ -796,6 +796,19 @@ export default function App() {
                   ? `With true β = ${example.realisticBeta.toFixed(2)}, the no-controls estimate is close. Conditioning on ${example.m} adds collider bias, distorting the estimate. The arrow weights show how strongly X and Y each drive selection into C.`
                   : `We set β = 0 so any signal is pure bias. The numbers on the arrows show how strongly each cause drives the collider. Conditioning on ${example.m} manufactures a relationship. Toggle "Realistic" to see distortion of a real effect.`)}
             </div>
+
+            <div style={{
+              marginTop: 12,
+              padding: "10px 14px",
+              borderRadius: 8,
+              fontSize: compact ? 13 : 14,
+              lineHeight: 1.5,
+              background: "#f0fdf4",
+              border: "1px solid #bbf7d0",
+              color: "#14532d",
+            }}>
+              You want to correct for confounders. You must not correct for colliders. But do you know which is which? Some variables are both! Observational causality may be harder than you think. That's ok. Have a coffee.
+            </div>
           </div>
         </main>
       </div>
