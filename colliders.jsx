@@ -62,9 +62,29 @@ const COLLIDERS = [
     realisticCite:"Near-zero in population; maybe tiny confidence/self-selection effect",
     story:"Attractiveness and acting talent are nearly uncorrelated in the population. Both independently help become a star—talent more so (awards, craft) but looks carry a real premium (Hamermesh & Biddle 1994). Conditioning on stardom creates a negative correlation among stars.",
   },
+  { id:"c4", type:"collider",
+    title:"Risk → Returns", sub:"Conditioning on fund survival",
+    x:"Portfolio Risk", y:"Returns", m:"Fund Survives",
+    paths: { xc: -0.60, yc: 0.65 },
+    pathsCite:"Survivorship bias inflates returns by 0.5–1.5% per year (Elton, Gruber & Blake 1996, Brown, Goetzmann & Ross 1995). Risky funds have higher attrition.",
+    realisticBeta: 0.08,
+    realisticCite:"Modest true risk premium after correcting for survivorship (Dimson, Marsh & Staunton 2002)",
+    story:"Risky funds are more likely to blow up and disappear (negative path). High returns keep funds alive. Among surviving funds, risk and returns appear positively correlated—classic survivorship bias. The apparent risk premium is inflated by the collider.",
+  },
 ];
 
 const MBIAS = [
+  { id:"m8", type:"mbias",
+    title:"Health Insurance → Health", sub:"Controlling for employment status",
+    x:"Health Insurance", y:"Health Outcomes", m:"Employment Status",
+    u1s:["Chronic illness burden","Disability prevalence","Age-related decline"],
+    u2s:["Baseline fitness","Childhood health & nutrition","Genetic endowment"],
+    paths: { u1x: 0.80, u1m: -0.70, u2y: 0.80, u2m: 0.75 },
+    pathsCite:"In reality, many different U1s and U2s exist. The DAG shows one pair; the simulation assumes their combined effects are large.",
+    realisticBeta: 0.10,
+    realisticCite:"Modest improvements, esp. mental health (Oregon HIE: Finkelstein et al. 2012)",
+    story:"Chronic illness drives insurance uptake but reduces employment. Baseline fitness improves health outcomes and employability. Employment is a collider—the negative path creates bias that can mask the true effect.",
+  },
   { id:"m1", type:"mbias",
     title:"Education → Health", sub:"Controlling for parental income",
     x:"Years of Schooling", y:"Health Outcomes", m:"Parental Income",
@@ -102,34 +122,34 @@ const MBIAS = [
     title:"Class Size → Test Scores", sub:"Controlling for school spending",
     x:"Class Size", y:"Test Scores", m:"School Spending / Pupil",
     u1s:["District pop. density","Urbanization level","School district size"],
-    u2s:["Parental involvement","Community wealth","Local education culture"],
-    paths: { u1x: 0.80, u1m: 0.75, u2y: 0.80, u2m: 0.75 },
+    u2s:["Share of special-needs students","Poverty rate","English-learner share"],
+    paths: { u1x: 0.80, u1m: 0.75, u2y: -0.70, u2m: 0.75 },
     pathsCite:"In reality, many different U1s and U2s exist. The DAG shows one pair; the simulation assumes their combined effects are large.",
     realisticBeta: -0.15,
     realisticCite:"STAR experiment: ~0.15–0.2 SD (Krueger 1999, Chetty et al. 2011)",
-    story:"Dense districts have larger classes and bigger tax bases. Involved parents boost scores and vote for levies. Spending per pupil is a collider.",
+    story:"Dense districts have larger classes and bigger budgets. High-need student populations lower test scores but attract compensatory spending. Spending per pupil is a collider—the negative path creates bias in the opposite direction.",
   },
   { id:"m5", type:"mbias",
     title:"Immigration → Native Wages", sub:"Controlling for housing prices",
     x:"Immigration Rate", y:"Native Wages", m:"Local Housing Prices",
     u1s:["Labor demand shocks","Economic booms","Industry expansion"],
-    u2s:["Local amenity value","Climate & geography","Cultural institutions"],
+    u2s:["Local productivity level","Agglomeration economies","Industry clustering"],
     paths: { u1x: 0.80, u1m: 0.75, u2y: 0.80, u2m: 0.75 },
     pathsCite:"In reality, many different U1s and U2s exist. The DAG shows one pair; the simulation assumes their combined effects are large.",
     realisticBeta: -0.03,
     realisticCite:"Small effects (Card 2009, Peri & Sparber 2009, Dustmann et al. 2016)",
-    story:"Labor demand pulls immigrants and raises housing prices. Amenities boost wages and prices. Conditioning on housing prices opens a backdoor path.",
+    story:"Labor demand pulls immigrants and raises housing prices. Local productivity raises wages and housing prices. Conditioning on housing prices opens a backdoor path.",
   },
   { id:"m6", type:"mbias",
     title:"R&D → Firm Profits", sub:"Controlling for credit rating",
     x:"R&D Spending", y:"Firm Profits", m:"Credit Rating",
-    u1s:["CEO risk tolerance","Firm maturity","Access to capital"],
+    u1s:["Competitive pressure","Industry disruption","Market uncertainty"],
     u2s:["Market position / moat","Brand strength","Regulatory barriers"],
-    paths: { u1x: 0.80, u1m: 0.75, u2y: 0.80, u2m: 0.75 },
+    paths: { u1x: 0.80, u1m: -0.70, u2y: 0.80, u2m: 0.75 },
     pathsCite:"In reality, many different U1s and U2s exist. The DAG shows one pair; the simulation assumes their combined effects are large.",
     realisticBeta: 0.15,
     realisticCite:"Positive with lags (Hall, Mairesse & Mohnen 2010, Bloom et al. 2013)",
-    story:"Risk-tolerant CEOs spend on R&D and take leverage. Strong market position drives profits and creditworthiness. Credit rating is a collider.",
+    story:"Competitive pressure drives R&D spending but hurts credit ratings (more uncertainty). Strong market position boosts profits and creditworthiness. Credit rating is a collider—the negative path flips the bias direction.",
   },
   { id:"m7", type:"mbias",
     title:"Trade Openness → Inequality", sub:"Controlling for FDI inflows",
@@ -142,38 +162,27 @@ const MBIAS = [
     realisticCite:"Modest positive in developing countries (Goldberg & Pavcnik 2007)",
     story:"Liberalizing institutions open trade and attract FDI. Natural resources drive inequality and attract FDI. FDI inflows are a collider.",
   },
-  { id:"m8", type:"mbias",
-    title:"Health Insurance → Health", sub:"Controlling for employment status",
-    x:"Health Insurance", y:"Health Outcomes", m:"Employment Status",
-    u1s:["Risk aversion","Education level","Financial literacy"],
-    u2s:["Baseline health","Childhood conditions","Genetic endowment"],
-    paths: { u1x: 0.80, u1m: 0.75, u2y: 0.80, u2m: 0.75 },
-    pathsCite:"In reality, many different U1s and U2s exist. The DAG shows one pair; the simulation assumes their combined effects are large.",
-    realisticBeta: 0.10,
-    realisticCite:"Modest improvements, esp. mental health (Oregon HIE: Finkelstein et al. 2012)",
-    story:"Risk-averse people buy insurance and hold stable jobs. Healthy people have better outcomes and are more employable. Employment is a collider.",
-  },
   { id:"m9", type:"mbias",
     title:"Interest Rates → Inflation", sub:"Controlling for exchange rate",
     x:"Interest Rate Changes", y:"Inflation Rate", m:"Exchange Rate",
-    u1s:["CB credibility","Institutional independence","Policy regime"],
+    u1s:["Capital flow pressures","Global risk appetite","Fed policy spillovers"],
     u2s:["Commodity prices","Oil supply shocks","Terms of trade"],
-    paths: { u1x: 0.80, u1m: 0.75, u2y: 0.80, u2m: 0.75 },
+    paths: { u1x: 0.80, u1m: 0.75, u2y: 0.80, u2m: -0.70 },
     pathsCite:"In reality, many different U1s and U2s exist. The DAG shows one pair; the simulation assumes their combined effects are large.",
     realisticBeta: -0.20,
     realisticCite:"Standard monetary transmission ~0.2 SD (Romer & Romer 2004, Ramey 2016)",
-    story:"Central bank credibility shapes rates and exchange rates. Global commodity prices drive inflation and exchange rates. Exchange rate is a collider.",
+    story:"Capital flow pressures force rate hikes and appreciate the currency. Commodity price shocks raise inflation but depreciate the currency (higher import bills). Exchange rate is a collider—the opposing signs create negative bias.",
   },
   { id:"m10", type:"mbias",
     title:"Sentence Length → Recidivism", sub:"Controlling for pre-trial detention",
     x:"Sentence Length", y:"Recidivism", m:"Pre-trial Detention",
-    u1s:["Prosecutorial severity","Judicial ideology","Crime severity"],
+    u1s:["Defendant resources","Quality of legal counsel","Family support"],
     u2s:["Social instability","Poverty & unemployment","Substance abuse"],
-    paths: { u1x: 0.80, u1m: 0.75, u2y: 0.80, u2m: 0.75 },
+    paths: { u1x: -0.70, u1m: -0.70, u2y: 0.80, u2m: 0.75 },
     pathsCite:"In reality, many different U1s and U2s exist. The DAG shows one pair; the simulation assumes their combined effects are large.",
     realisticBeta: 0.05,
     realisticCite:"Slight criminogenic effect (Mueller-Smith 2015, Green & Winik 2010)",
-    story:"Tough prosecutors push longer sentences and oppose bail. Social instability drives recidivism and detention. Pre-trial detention is a collider.",
+    story:"Better-resourced defendants get shorter sentences and avoid pre-trial detention (both negative). Social instability drives recidivism and detention. Pre-trial detention is a collider—two negative paths into M create positive bias on that side, but the overall bias direction differs from all-positive examples.",
   },
 ];
 
@@ -494,7 +503,7 @@ function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compac
         <text x={pad.left+20} y={pad.top+18} fontSize={8.5} fill="#3b82f6" fontFamily="'Source Serif 4',Georgia,serif">High {example.m.length>16?"M":example.m} — Y ↓</text>
         <circle cx={pad.left+13} cy={pad.top+29} r={3.5} fill="#f59e0b" opacity={0.7}/>
         <text x={pad.left+20} y={pad.top+32} fontSize={8.5} fill="#f59e0b" fontFamily="'Source Serif 4',Georgia,serif">Low {example.m.length>16?"M":example.m} — Y ↑</text>
-        {showArrows && <text x={pad.left+13} y={pad.top+46} fontSize={8} fill="#94a3b8" fontFamily="'Source Serif 4',Georgia,serif">↕ Arrows = Y shift from "controlling"</text>}
+        {showArrows && <text x={pad.left+13} y={pad.top+46} fontSize={8} fill="#94a3b8" fontFamily="'Source Serif 4',Georgia,serif">↕ Arrows (sample) = Y shift from controlling</text>}
       </g>}
     </svg>
   );
@@ -591,7 +600,7 @@ export default function App() {
 
   const [selId, setSelId] = useState("c1");
   const [conditioned, setConditioned] = useState(false);
-  const [showArrows, setShowArrows] = useState(true);
+  const showArrows = true;
   const [seed, setSeed] = useState(42);
   const [n, setN] = useState(1000);
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -654,12 +663,6 @@ export default function App() {
         }}>
           {conditioned ? "✕ Remove Control" : `Control for ${example.m.length>20 ? "M" : example.m}`}
         </button>
-        {conditioned && (
-          <label style={{ display:"flex", alignItems:"center", gap:4, fontSize:11, color:"#475569", cursor:"pointer", userSelect:"none" }}>
-            <input type="checkbox" checked={showArrows} onChange={e => setShowArrows(e.target.checked)} style={{ accentColor:"#dc2626" }}/>
-            {isMobile ? "↕" : "Arrows"}
-          </label>
-        )}
         <div style={{ width:1, height:20, background:"#e2e8f0", flexShrink:0 }}/>
         <button onClick={() => setSeed(s=>s+1)} style={{
           padding:"4px 10px", fontSize:11,
