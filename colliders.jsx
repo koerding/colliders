@@ -551,7 +551,7 @@ function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compac
         <text x={pad.left+20} y={pad.top+18} fontSize={8.5} fill="#3b82f6" fontFamily="'Source Serif 4',Georgia,serif">High {example.m.length>16?"M":example.m} — Y ↓</text>
         <circle cx={pad.left+13} cy={pad.top+29} r={3.5} fill="#f59e0b" opacity={0.7}/>
         <text x={pad.left+20} y={pad.top+32} fontSize={8.5} fill="#f59e0b" fontFamily="'Source Serif 4',Georgia,serif">Low {example.m.length>16?"M":example.m} — Y ↑</text>
-        {showArrows && <text x={pad.left+13} y={pad.top+46} fontSize={8} fill="#94a3b8" fontFamily="'Source Serif 4',Georgia,serif">↕ Arrows (sample) = Y shift from controlling</text>}
+        {showArrows && <text x={pad.left+13} y={pad.top+46} fontSize={8} fill="#94a3b8" fontFamily="'Source Serif 4',Georgia,serif">↕ Arrows (random subset) = Y shift from controlling</text>}
       </g>}
     </svg>
   );
