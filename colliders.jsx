@@ -548,9 +548,9 @@ function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compac
       <g>
         <rect x={pad.left+3} y={pad.top+3} width={compact?175:200} height={conditioned&&showArrows?52:38} rx={4} fill="white" fillOpacity={0.9} stroke="#e2e8f0" strokeWidth={1}/>
         <circle cx={pad.left+13} cy={pad.top+15} r={3.5} fill="#3b82f6" opacity={0.7}/>
-        <text x={pad.left+20} y={pad.top+18} fontSize={8.5} fill="#3b82f6" fontFamily="'Source Serif 4',Georgia,serif">High {example.m.length>16?"M":example.m}{conditioned?" — Y ↓":""}</text>
+        <text x={pad.left+20} y={pad.top+18} fontSize={8.5} fill="#3b82f6" fontFamily="'Source Serif 4',Georgia,serif">{example.m.length>16?"M":example.m} ↑{conditioned?" — Y ↓":""}</text>
         <circle cx={pad.left+13} cy={pad.top+29} r={3.5} fill="#f59e0b" opacity={0.7}/>
-        <text x={pad.left+20} y={pad.top+32} fontSize={8.5} fill="#f59e0b" fontFamily="'Source Serif 4',Georgia,serif">Low {example.m.length>16?"M":example.m}{conditioned?" — Y ↑":""}</text>
+        <text x={pad.left+20} y={pad.top+32} fontSize={8.5} fill="#f59e0b" fontFamily="'Source Serif 4',Georgia,serif">{example.m.length>16?"M":example.m} ↓{conditioned?" — Y ↑":""}</text>
         {conditioned && showArrows && <text x={pad.left+13} y={pad.top+46} fontSize={8} fill="#94a3b8" fontFamily="'Source Serif 4',Georgia,serif">↕ Arrows (random subset) = Y shift from controlling</text>}
       </g>
     </svg>
