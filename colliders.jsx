@@ -1,5 +1,5 @@
 // v3 — U labels above nodes
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 
 // ─── Responsive hook ────────────────────────────────────────────────────────
 
@@ -293,9 +293,10 @@ function Toggle({ on, onToggle, leftLabel, rightLabel, compact }) {
 
 // ─── DAG with coefficients on arrows ────────────────────────────────────────
 
-function DAG({ example, conditioned, compact, hasDirectEffect }) {
+function DAG({ example, conditioned, compact, hasDirectEffect, paths: p, onPathChange }) {
   const isM = example.type === "mbias";
-  const p = example.paths;
+  const [editing, setEditing] = useState(null); // key like "xc", "u1x", etc.
+  const svgRef = useRef(null);
   const w = 460, h = isM ? (compact ? 270 : 290) : (compact ? 220 : 240);
   const vbY = 0;
   const vbH = h;
@@ -322,7 +323,9 @@ function DAG({ example, conditioned, compact, hasDirectEffect }) {
   const nMap = {}; nodes.forEach(n => nMap[n.id]=n);
 
   // Place label at t along edge (0=source, 1=target), offset perpendicular
-  const edgeLabel = (f, t, coef, tPos, side) => {
+  // Returns { svgEl, lx, ly } — lx/ly are in SVG viewBox coords for overlay positioning
+  const edgeLabelData = [];
+  const edgeLabel = (f, t, coef, tPos, side, pathKey) => {
     const a = nMap[f], b = nMap[t];
     const px = a.x + (b.x - a.x) * tPos;
     const py = a.y + (b.y - a.y) * tPos;
@@ -330,20 +333,30 @@ function DAG({ example, conditioned, compact, hasDirectEffect }) {
     const l = Math.sqrt(dx*dx + dy*dy);
     const off = side === "left" ? -11 : 11;
     const nx = -dy/l * off, ny = dx/l * off;
+    const lx = px + nx, ly = py + ny;
+
+    edgeLabelData.push({ pathKey, coef, lx, ly });
+
     return (
-      <text key={`lbl-${f}-${t}`}
-        x={px + nx} y={py + ny + 3}
-        textAnchor="middle" fontSize={10} fontWeight={700}
-        fontFamily="'JetBrains Mono',monospace"
-        fill="#475569" opacity={0.75}>
-        {coef.toFixed(2)}
-      </text>
+      <g key={`lbl-${f}-${t}`} style={{ cursor:"pointer", userSelect:"none" }}
+        onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); setEditing(pathKey); }}>
+        <rect x={lx - 22} y={ly - 9} width={44} height={18} rx={3}
+          fill="#f1f5f9" stroke="#cbd5e1" strokeWidth={0.5} opacity={0.6} />
+        <text
+          x={lx} y={ly + 3}
+          textAnchor="middle" fontSize={10} fontWeight={700}
+          fontFamily="'JetBrains Mono',monospace"
+          fill="#475569" style={{ pointerEvents:"none" }}>
+          {coef.toFixed(2)}
+        </text>
+      </g>
     );
   };
 
 
   return (
-    <svg viewBox={`0 ${vbY} ${w} ${vbH}`} style={{ width:"100%", height:"auto" }}>
+    <div style={{ position:"relative" }}>
+    <svg ref={svgRef} viewBox={`0 ${vbY} ${w} ${vbH}`} style={{ width:"100%", height:"auto", display:"block" }}>
       <defs>
         <marker id="ah" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#64748b"/></marker>
         <marker id="ahr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto"><polygon points="0 0,7 2.5,0 5" fill="#dc2626"/></marker>
@@ -355,17 +368,6 @@ function DAG({ example, conditioned, compact, hasDirectEffect }) {
         const a=nMap[f], b=nMap[t], dx=b.x-a.x, dy=b.y-a.y, l=Math.sqrt(dx*dx+dy*dy), r=22;
         return <line key={i} x1={a.x+dx/l*r} y1={a.y+dy/l*r} x2={b.x-dx/l*(r+7)} y2={b.y-dy/l*(r+7)} stroke="#64748b" strokeWidth={1.8} markerEnd="url(#ah)" opacity={0.65}/>;
       })}
-
-      {/* Coefficient labels — near X/Y (above), near M (below) */}
-      {isM ? <>
-        {edgeLabel("u1","x", p.u1x, 0.75, "left")}
-        {edgeLabel("u1","m", p.u1m, 0.65, "right")}
-        {edgeLabel("u2","y", p.u2y, 0.75, "right")}
-        {edgeLabel("u2","m", p.u2m, 0.65, "left")}
-      </> : <>
-        {edgeLabel("x","m", p.xc, 0.25, "left")}
-        {edgeLabel("y","m", p.yc, 0.25, "right")}
-      </>}
 
       {/* Direct X→Y (realistic effect) */}
       {hasDirectEffect && (() => {
@@ -436,7 +438,53 @@ function DAG({ example, conditioned, compact, hasDirectEffect }) {
           <text x={hasDirectEffect?(isM?225:140):(isM?125:32)} y={h-6} fontSize={8} fill="#dc2626" fontFamily="'Source Serif 4',Georgia,serif">Spurious</text></>}
       </g>
 
+      {/* Coefficient labels — rendered last so they're on top and clickable */}
+      {isM ? <>
+        {edgeLabel("u1","x", p.u1x, 0.75, "left", "u1x")}
+        {edgeLabel("u1","m", p.u1m, 0.65, "right", "u1m")}
+        {edgeLabel("u2","y", p.u2y, 0.75, "right", "u2y")}
+        {edgeLabel("u2","m", p.u2m, 0.65, "left", "u2m")}
+      </> : <>
+        {edgeLabel("x","m", p.xc, 0.25, "left", "xc")}
+        {edgeLabel("y","m", p.yc, 0.25, "right", "yc")}
+      </>}
+
     </svg>
+    {editing && (() => {
+      const info = edgeLabelData.find(d => d.pathKey === editing);
+      if (!info || !svgRef.current) return null;
+      const svg = svgRef.current;
+      const rect = svg.getBoundingClientRect();
+      const scaleX = rect.width / w, scaleY = rect.height / vbH;
+      const left = (info.lx - vbY) * scaleX; // vbY is 0 so this is just info.lx * scaleX
+      const top = (info.ly - vbY) * scaleY;
+      return (
+        <input
+          autoFocus
+          defaultValue={info.coef.toFixed(2)}
+          style={{
+            position:"absolute",
+            left: left - 24, top: top - 10,
+            width:48, height:20,
+            border:"1px solid #3b82f6", borderRadius:3,
+            textAlign:"center", fontSize:10, fontWeight:700,
+            fontFamily:"'JetBrains Mono',monospace", background:"#fff",
+            outline:"none", padding:0, zIndex:10,
+          }}
+          onFocus={(e) => e.target.select()}
+          onBlur={(e) => {
+            const v = parseFloat(e.target.value);
+            if (!isNaN(v) && v >= -1 && v <= 1) onPathChange(editing, v);
+            setEditing(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.target.blur();
+            if (e.key === "Escape") setEditing(null);
+          }}
+        />
+      );
+    })()}
+    </div>
   );
 }
 
@@ -606,13 +654,16 @@ export default function App() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [sideOpen, setSideOpen] = useState(true);
   const [realistic, setRealistic] = useState(false);
+  const [customPaths, setCustomPaths] = useState(null);
 
   const example = ALL.find(e => e.id === selId);
+  const paths = customPaths || example.paths;
+  const exWithPaths = useMemo(() => ({ ...example, paths }), [example, paths]);
   const trueBeta = realistic ? example.realisticBeta : 0;
-  const data = useMemo(() => generateData(example, n, seed, trueBeta), [example, n, seed, trueBeta]);
+  const data = useMemo(() => generateData(exWithPaths, n, seed, trueBeta), [exWithPaths, n, seed, trueBeta]);
   const adjusted = useMemo(() => computeAdjusted(data), [data]);
 
-  useEffect(() => { setConditioned(false); }, [selId]);
+  useEffect(() => { setConditioned(false); setCustomPaths(null); }, [selId]);
   useEffect(() => { if (!isNarrow) setDrawerOpen(false); }, [isNarrow]);
 
   return (
@@ -753,7 +804,9 @@ export default function App() {
               <div style={{ fontSize:8, color:"#94a3b8", marginBottom:4, lineHeight:1.3, fontStyle:"italic" }}>
                 {example.pathsCite}
               </div>
-              <DAG example={example} conditioned={conditioned} compact={true} hasDirectEffect={realistic}/>
+              <DAG example={example} conditioned={conditioned} compact={true} hasDirectEffect={realistic}
+                paths={paths}
+                onPathChange={(key, val) => { setCustomPaths(prev => ({ ...(prev || example.paths), [key]: val })); setSeed(s => s + 1); }}/>
             </div>
 
             {/* Scatter */}
