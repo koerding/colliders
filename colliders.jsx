@@ -38,6 +38,7 @@ const COLLIDERS = [
   { id:"c1", type:"collider",
     title:"Height → Skill in NBA", sub:"Conditioning on NBA selection",
     x:"Height", y:"Basketball Skill", m:"In the NBA",
+    binaryM: true, mPct: 0.10,
     paths: { xc: 0.70, yc: 0.65 },
     pathsCite:"Height→NBA from selection rates (17% of 7-footers; Sports Illustrated / Stephens-Davidowitz). Skill→NBA slightly lower—height alone opens doors.",
     realisticBeta: 0.10,
@@ -47,6 +48,7 @@ const COLLIDERS = [
   { id:"c2", type:"collider",
     title:"Tech Quality → Marketing", sub:"Conditioning on VC funding",
     x:"Technical Quality", y:"Marketing Quality", m:"VC Funded",
+    binaryM: true, mPct: 0.10,
     paths: { xc: 0.50, yc: 0.45 },
     pathsCite:"Product rated important by 74% of VCs, traction/market validation close behind (Gompers et al. 2020, Kaplan & Strömberg 2004).",
     realisticBeta: 0.05,
@@ -56,6 +58,7 @@ const COLLIDERS = [
   { id:"c3", type:"collider",
     title:"Looks → Talent in Hollywood", sub:"Conditioning on stardom",
     x:"Attractiveness", y:"Acting Talent", m:"Movie Star",
+    binaryM: true, mPct: 0.10,
     paths: { xc: 0.40, yc: 0.55 },
     pathsCite:"Beauty premium from Hamermesh & Biddle 1994; talent as primary career driver from Elberse 2007 (star power & box office).",
     realisticBeta: 0.03,
@@ -65,6 +68,7 @@ const COLLIDERS = [
   { id:"c4", type:"collider",
     title:"Risk → Returns", sub:"Conditioning on fund survival",
     x:"Portfolio Risk", y:"Returns", m:"Fund Survives",
+    binaryM: true, mPct: 0.50,
     paths: { xc: -0.60, yc: 0.65 },
     pathsCite:"Survivorship bias inflates returns by 0.5–1.5% per year (Elton, Gruber & Blake 1996, Brown, Goetzmann & Ross 1995). Risky funds have higher attrition.",
     realisticBeta: 0.08,
@@ -77,6 +81,7 @@ const MBIAS = [
   { id:"m8", type:"mbias",
     title:"Health Insurance → Health", sub:"Controlling for employment status",
     x:"Health Insurance", y:"Health Outcomes", m:"Employment Status",
+    binaryM: true, mPct: 0.80,
     u1s:["Chronic illness burden","Disability prevalence","Age-related decline"],
     u2s:["Baseline fitness","Childhood health & nutrition","Genetic endowment"],
     paths: { u1x: 0.80, u1m: -0.70, u2y: 0.80, u2m: 0.75 },
@@ -176,6 +181,7 @@ const MBIAS = [
   { id:"m10", type:"mbias",
     title:"Sentence Length → Recidivism", sub:"Controlling for pre-trial detention",
     x:"Sentence Length", y:"Recidivism", m:"Pre-trial Detention",
+    binaryM: true, mPct: 0.25,
     u1s:["Defendant resources","Quality of legal counsel","Family support"],
     u2s:["Social instability","Poverty & unemployment","Substance abuse"],
     paths: { u1x: -0.70, u1m: -0.70, u2y: 0.80, u2m: 0.75 },
@@ -250,10 +256,25 @@ function generateData(ex, n, seed, trueBeta) {
       data.push({ x, y, m });
     }
   }
+  if (ex.binaryM) {
+    data.sort((a, b) => b.m - a.m);
+    const cutIdx = Math.floor(n * ex.mPct);
+    data.forEach((d, i) => { d.m = i < cutIdx ? 1 : 0; });
+    for (let i = data.length - 1; i > 0; i--) {
+      const j = Math.floor(rng() * (i + 1));
+      [data[i], data[j]] = [data[j], data[i]];
+    }
+  }
   return data;
 }
 
-function computeAdjusted(data) {
+function computeAdjusted(data, ex) {
+  if (ex && ex.binaryM) {
+    const g1 = data.filter(d => d.m === 1), g0 = data.filter(d => d.m === 0);
+    const m1 = g1.length ? mean(g1.map(d => d.y)) : 0;
+    const m0 = g0.length ? mean(g0.map(d => d.y)) : 0;
+    return data.map(d => ({ ...d, adjY: d.y - (d.m === 1 ? m1 : m0) }));
+  }
   const xs = data.map(d=>d.x), ys = data.map(d=>d.y), ms = data.map(d=>d.m);
   const reg = multiReg(xs, ms, ys);
   const mm = mean(ms);
@@ -488,6 +509,16 @@ function DAG({ example, conditioned, compact, hasDirectEffect, paths: p, onPathC
   );
 }
 
+// ─── Color helpers ──────────────────────────────────────────────────────────
+
+function mColor(mVal, mMin, mMax) {
+  const t = mMax === mMin ? 0.5 : (mVal - mMin) / (mMax - mMin);
+  const r = Math.round(239 + (59 - 239) * t);
+  const g = Math.round(68 + (130 - 68) * t);
+  const b = Math.round(68 + (246 - 68) * t);
+  return `rgb(${r},${g},${b})`;
+}
+
 // ─── Arrow Scatterplot ──────────────────────────────────────────────────────
 
 function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compact }) {
@@ -509,14 +540,14 @@ function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compac
   const maxDots = compact ? 600 : 800;
   const dotStep = Math.max(1, Math.floor(data.length / maxDots));
   const uncondReg = simpleReg(data.map(d=>d.x), data.map(d=>d.y));
-  const mMedian = [...data.map(d=>d.m)].sort((a,b)=>a-b)[Math.floor(data.length/2)];
+  const isBinary = example.binaryM;
+  const mVals = data.map(d=>d.m);
+  const mMin = Math.min(...mVals), mMax = Math.max(...mVals);
+  const dotColor = (d) => isBinary ? (d.m === 1 ? "#3b82f6" : "#ef4444") : mColor(d.m, mMin, mMax);
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} style={{ width:"100%", height:"auto" }}>
-      <defs>
-        <marker id="ab" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polygon points="0 0,5 2,0 4" fill="#3b82f6" opacity="0.7"/></marker>
-        <marker id="aa" markerWidth="5" markerHeight="4" refX="5" refY="2" orient="auto"><polygon points="0 0,5 2,0 4" fill="#f59e0b" opacity="0.7"/></marker>
-      </defs>
+      <defs/>
       {[0.25,0.5,0.75].map(f => <g key={f}>
         <line x1={pad.left} y1={pad.top+ph*f} x2={pad.left+pw} y2={pad.top+ph*f} stroke="#f1f5f9" strokeWidth={1}/>
         <line x1={pad.left+pw*f} y1={pad.top} x2={pad.left+pw*f} y2={pad.top+ph} stroke="#f1f5f9" strokeWidth={1}/>
@@ -530,15 +561,14 @@ function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compac
       {conditioned && showArrows && arrowIdx.map(i => {
         const d=data[i], a=adjusted[i], px=sx(d.x), fromY=sy(d.y), toY=sy(a.adjY);
         if (Math.abs(toY-fromY)<3) return null;
-        const isHigh = d.m > mMedian;
+        const c = dotColor(d);
         return <line key={`a${i}`} x1={px} y1={fromY} x2={px} y2={toY}
-          stroke={isHigh?"#3b82f6":"#f59e0b"} strokeWidth={1.2} opacity={0.4}
-          markerEnd={isHigh?"url(#ab)":"url(#aa)"}/>;
+          stroke={c} strokeWidth={1.2} opacity={0.4}/>;
       })}
       {data.map((d,i) => i%dotStep===0 && <circle key={`o${i}`} cx={sx(d.x)} cy={sy(d.y)} r={conditioned?1.5:2.2}
-        fill={conditioned?"#cbd5e1":(d.m>mMedian?"#3b82f6":"#f59e0b")} opacity={conditioned?0.18:0.3}/>)}
+        fill={conditioned?"#cbd5e1":dotColor(d)} opacity={conditioned?0.18:0.3}/>)}
       {conditioned && adjusted.map((d,i) => i%dotStep===0 && <circle key={`c${i}`} cx={sx(d.x)} cy={sy(d.adjY)} r={2.5}
-        fill={d.m>mMedian?"#3b82f6":"#f59e0b"} opacity={0.5}/>)}
+        fill={dotColor(d)} opacity={0.5}/>)}
 
       {!conditioned && (() => { const r=uncondReg; return <line x1={sx(xMin+0.3)} y1={sy(r.intercept+r.slope*(xMin+0.3))}
         x2={sx(xMax-0.3)} y2={sy(r.intercept+r.slope*(xMax-0.3))} stroke="#475569" strokeWidth={2} opacity={0.5}/>; })()}
@@ -546,12 +576,25 @@ function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compac
         x2={sx(xMax-0.3)} y2={sy(r.intercept+r.slope*(xMax-0.3))} stroke="#dc2626" strokeWidth={2.5} opacity={0.85}/>; })()}
 
       <g>
-        <rect x={pad.left+3} y={pad.top+3} width={compact?175:200} height={conditioned&&showArrows?52:38} rx={4} fill="white" fillOpacity={0.9} stroke="#e2e8f0" strokeWidth={1}/>
-        <circle cx={pad.left+13} cy={pad.top+15} r={3.5} fill="#3b82f6" opacity={0.7}/>
-        <text x={pad.left+20} y={pad.top+18} fontSize={8.5} fill="#3b82f6" fontFamily="'Source Serif 4',Georgia,serif">{example.m.length>16?"M":example.m} ↑{conditioned?" — Y ↓":""}</text>
-        <circle cx={pad.left+13} cy={pad.top+29} r={3.5} fill="#f59e0b" opacity={0.7}/>
-        <text x={pad.left+20} y={pad.top+32} fontSize={8.5} fill="#f59e0b" fontFamily="'Source Serif 4',Georgia,serif">{example.m.length>16?"M":example.m} ↓{conditioned?" — Y ↑":""}</text>
-        {conditioned && showArrows && <text x={pad.left+13} y={pad.top+46} fontSize={8} fill="#94a3b8" fontFamily="'Source Serif 4',Georgia,serif">↕ Arrows (random subset) = Y shift from controlling</text>}
+        {isBinary ? (<>
+          <rect x={pad.left+3} y={pad.top+3} width={compact?175:200} height={conditioned&&showArrows?52:38} rx={4} fill="white" fillOpacity={0.9} stroke="#e2e8f0" strokeWidth={1}/>
+          <circle cx={pad.left+13} cy={pad.top+15} r={3.5} fill="#3b82f6" opacity={0.7}/>
+          <text x={pad.left+20} y={pad.top+18} fontSize={8.5} fill="#3b82f6" fontFamily="'Source Serif 4',Georgia,serif">{example.m.length>16?"M":example.m} = Yes{conditioned?" — Y ↓":""}</text>
+          <circle cx={pad.left+13} cy={pad.top+29} r={3.5} fill="#ef4444" opacity={0.7}/>
+          <text x={pad.left+20} y={pad.top+32} fontSize={8.5} fill="#ef4444" fontFamily="'Source Serif 4',Georgia,serif">{example.m.length>16?"M":example.m} = No{conditioned?" — Y ↑":""}</text>
+          {conditioned && showArrows && <text x={pad.left+13} y={pad.top+46} fontSize={8} fill="#94a3b8" fontFamily="'Source Serif 4',Georgia,serif">↕ Arrows (random subset) = Y shift from controlling</text>}
+        </>) : (<>
+          <rect x={pad.left+3} y={pad.top+3} width={compact?175:200} height={conditioned&&showArrows?42:28} rx={4} fill="white" fillOpacity={0.9} stroke="#e2e8f0" strokeWidth={1}/>
+          <defs>
+            <linearGradient id="mGrad" x1="0" x2="1" y1="0" y2="0">
+              <stop offset="0%" stopColor="#ef4444"/>
+              <stop offset="100%" stopColor="#3b82f6"/>
+            </linearGradient>
+          </defs>
+          <rect x={pad.left+10} y={pad.top+10} width={40} height={8} rx={2} fill="url(#mGrad)"/>
+          <text x={pad.left+56} y={pad.top+18} fontSize={8.5} fill="#64748b" fontFamily="'Source Serif 4',Georgia,serif">{example.m.length>16?"M":example.m} (low → high)</text>
+          {conditioned && showArrows && <text x={pad.left+13} y={pad.top+36} fontSize={8} fill="#94a3b8" fontFamily="'Source Serif 4',Georgia,serif">↕ Arrows (random subset) = Y shift from controlling</text>}
+        </>)}
       </g>
     </svg>
   );
@@ -661,7 +704,7 @@ export default function App() {
   const exWithPaths = useMemo(() => ({ ...example, paths }), [example, paths]);
   const trueBeta = realistic ? example.realisticBeta : 0;
   const data = useMemo(() => generateData(exWithPaths, n, seed, trueBeta), [exWithPaths, n, seed, trueBeta]);
-  const adjusted = useMemo(() => computeAdjusted(data), [data]);
+  const adjusted = useMemo(() => computeAdjusted(data, example), [data, example]);
 
   useEffect(() => { setConditioned(false); setCustomPaths(null); }, [selId]);
   useEffect(() => { if (!isNarrow) setDrawerOpen(false); }, [isNarrow]);
