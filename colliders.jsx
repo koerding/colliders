@@ -562,8 +562,11 @@ function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compac
         const d=data[i], a=adjusted[i], px=sx(d.x), fromY=sy(d.y), toY=sy(a.adjY);
         if (Math.abs(toY-fromY)<3) return null;
         const c = dotColor(d);
-        return <line key={`a${i}`} x1={px} y1={fromY} x2={px} y2={toY}
-          stroke={c} strokeWidth={1.2} opacity={0.4}/>;
+        const dir = toY > fromY ? 1 : -1;
+        return <g key={`a${i}`}>
+          <line x1={px} y1={fromY} x2={px} y2={toY} stroke={c} strokeWidth={1.2} opacity={0.4}/>
+          <polygon points={`${px},${toY} ${px-2},${toY-dir*3.5} ${px+2},${toY-dir*3.5}`} fill={c} opacity={0.7}/>
+        </g>;
       })}
       {data.map((d,i) => i%dotStep===0 && <circle key={`o${i}`} cx={sx(d.x)} cy={sy(d.y)} r={conditioned?1.5:2.2}
         fill={conditioned?"#cbd5e1":dotColor(d)} opacity={conditioned?0.18:0.3}/>)}
