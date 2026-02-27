@@ -48,7 +48,7 @@ const COLLIDERS = [
   { id:"c2", type:"collider",
     title:"Tech Quality → Marketing", sub:"Conditioning on VC funding",
     x:"Technical Quality", y:"Marketing Quality", m:"VC Funded",
-    binaryM: true, mPct: 0.10,
+    binaryM: true, mPct: 0.20,
     paths: { xc: 0.50, yc: 0.45 },
     pathsCite:"Product rated important by 74% of VCs, traction/market validation close behind (Gompers et al. 2020, Kaplan & Strömberg 2004).",
     realisticBeta: 0.05,
@@ -70,7 +70,7 @@ const COLLIDERS = [
     x:"Portfolio Risk", y:"Returns", m:"Fund Survives",
     binaryM: true, mPct: 0.50,
     paths: { xc: -0.60, yc: 0.65 },
-    pathsCite:"Survivorship bias inflates returns by 0.5–1.5% per year (Elton, Gruber & Blake 1996, Brown, Goetzmann & Ross 1995). Risky funds have higher attrition.",
+    pathsCite:"Survivorship bias inflates returns by 0.5–1.5% per year (Elton, Gruber & Blake 1996, Brown & Goetzmann 1995). Risky funds have higher attrition.",
     realisticBeta: 0.08,
     realisticCite:"Modest true risk premium after correcting for survivorship (Dimson, Marsh & Staunton 2002)",
     story:"Risky funds are more likely to blow up and disappear (negative path). High returns keep funds alive. Among surviving funds, risk and returns appear positively correlated—classic survivorship bias. The apparent risk premium is inflated by the collider.",
@@ -535,7 +535,7 @@ function ArrowScatter({ data, adjusted, conditioned, example, showArrows, compac
   const sx = v => pad.left+((v-xMin)/(xMax-xMin))*pw;
   const sy = v => pad.top+ph-((v-yMin)/(yMax-yMin))*ph;
 
-  const step = Math.max(1, Math.floor(data.length / (compact ? 50 : 80)));
+  const step = Math.max(1, Math.floor(data.length / (compact ? 100 : 160)));
   const arrowIdx = data.map((_,i) => i).filter(i => i%step===0);
   const maxDots = compact ? 600 : 800;
   const dotStep = Math.max(1, Math.floor(data.length / maxDots));
